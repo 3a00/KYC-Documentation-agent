@@ -8,10 +8,10 @@
 
 ## Acceptance Criteria
 
-- [ ] Early spike: Probe Gemini API token logprobs on structured multimodal extraction; establish working fallback to verbalized field-level confidence if logprobs are unsupported or sparse.
-- [ ] Multimodal extraction runs in parallel, isolated contexts per document (National ID, Business License, Tax Card) to prevent token contamination across documents.
-- [ ] Structured extraction enforces Pydantic models with bounding box predictions and field confidence.
-- [ ] Composite confidence calculation integrates model extraction signal, local OpenCV clarity metrics, and format checks.
-- [ ] Bounded 1x retry loop: If a Tier 1 field exhibits low confidence ($<0.85$) and the localized bounding box suffers from recoverable optical defects (glare/low contrast), the agent invokes a re-crop and CLAHE contrast enhancement tool.
-- [ ] Retries are strictly capped at maximum one attempt per document.
-- [ ] Unrecoverable errors (structural format invalidity, illegible handwriting) bypass the retry tool and route directly to human escalation.
+- [x] Early spike: Probe Gemini API token logprobs on structured multimodal extraction; establish working fallback to verbalized field-level confidence if logprobs are unsupported or sparse.
+- [x] Multimodal extraction runs in parallel, isolated contexts per document (National ID, Business License, Tax Card) to prevent token contamination across documents.
+- [x] Structured extraction enforces Pydantic models with bounding box predictions and field confidence.
+- [x] Composite confidence calculation integrates model extraction signal, local OpenCV clarity metrics, and format checks.
+- [x] Bounded 1x retry loop: If a Tier 1 field exhibits low confidence ($<0.85$) and the localized bounding box suffers from recoverable optical defects (glare/low contrast), the agent invokes a re-crop and CLAHE contrast enhancement tool.
+- [x] Retries are strictly capped at maximum one attempt per document.
+- [x] Unrecoverable errors (structural format invalidity, illegible handwriting) bypass the retry tool and route directly to human escalation.
