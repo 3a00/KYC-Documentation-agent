@@ -8,10 +8,10 @@
 
 ## Acceptance Criteria
 
-- [ ] Implements the top-level testing seam:
+- [x] Implements the top-level testing seam:
   `verify_onboarding_package(national_id_image, business_license_image, tax_card_image) -> OnboardingDossier`
-- [ ] Tier 1 Policy: National ID Number, Full Name, Expiration Date strictly require $\ge 0.85$ confidence. Any drop immediately triggers `HUMAN_ESCALATION`.
-- [ ] Tier 2 Policy: Mother's Name, Issue Date, Province require $\ge 0.70$ confidence. Drops below 0.70 append audit warnings to the dossier without blocking `AUTO_PASS` if Tier 1 and cross-matching pass.
-- [ ] Incorporates deterministic cross-document matching results across National ID, Business License, and Tax Card.
-- [ ] Emits one of three clear lifecycle outcomes: `AUTO_PASS`, `HUMAN_ESCALATION`, or `HARD_MISMATCH`.
-- [ ] Generates an auditable Arabic exception dossier for escalated files, highlighting the failing field name, confidence scores, visual coordinates, and side-by-side string diffs.
+- [x] Tier 1 Policy: National ID Number, Full Name, Expiration Date strictly require $\ge 0.85$ confidence. Any drop immediately triggers `HUMAN_ESCALATION`.
+- [x] Tier 2 Policy: Mother's Name, Issue Date, Province require $\ge 0.70$ confidence. Drops below 0.70 append audit warnings to the dossier without blocking `AUTO_PASS` if Tier 1 and cross-matching pass.
+- [x] Incorporates deterministic cross-document matching results across National ID, Business License, and Tax Card.
+- [x] Emits one of three clear lifecycle outcomes: `AUTO_PASS`, `HUMAN_ESCALATION`, or `HARD_MISMATCH`.
+- [x] Generates an auditable Arabic exception dossier for escalated files, highlighting the failing field name, confidence scores, visual coordinates, and side-by-side string diffs.
