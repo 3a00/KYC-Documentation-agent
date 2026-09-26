@@ -1,0 +1,42 @@
+{
+  "package_id": "PKG-0002",
+  "scenario": "specular_glare",
+  "expected_outcome": "HUMAN_ESCALATION",
+  "ground_truth": {
+    "national_id": {
+      "national_id": "198313435890",
+      "full_name": "عمر إبراهيم باقر البياتي",
+      "mother_name": "نور صادق",
+      "expiry_date": "2030/02/23",
+      "issue_date": "2020/02/23",
+      "province": "كركوك"
+    },
+    "business_license": {
+      "business_name": "شركة حيدر الزبيدي للتجارة المحدودة",
+      "full_name": "عمر إبراهيم باقر البياتي",
+      "license_number": "BL-2020-2188",
+      "issue_date": "2020/02/23",
+      "business_activity": "تجارة المواد الغذائية",
+      "province": "كركوك"
+    },
+    "tax_card": {
+      "tax_id": "TIN-1650246",
+      "taxpayer_name": "عمر إبراهيم باقر البياتي",
+      "fiscal_year": "2020",
+      "issue_date": "2020/02/23"
+    }
+  },
+  "planted_defects": [
+    {
+      "type": "specular_glare",
+      "target_document": "national_id",
+      "target_field": "full_name",
+      "bbox": [
+        372,
+        137,
+        610,
+        159
+      ]
+    }
+  ]
+}

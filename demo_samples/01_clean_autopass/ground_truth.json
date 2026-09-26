@@ -1,0 +1,30 @@
+{
+  "package_id": "PKG-0001",
+  "scenario": "clean",
+  "expected_outcome": "AUTO_PASS",
+  "ground_truth": {
+    "national_id": {
+      "national_id": "199773735566",
+      "full_name": "علي كاظم حمزة المالكي",
+      "mother_name": "زهراء علي",
+      "expiry_date": "2032/08/10",
+      "issue_date": "2022/08/10",
+      "province": "ديالى"
+    },
+    "business_license": {
+      "business_name": "شركة علي التميمي للتجارة المحدودة",
+      "full_name": "علي كاظم حمزة المالكي",
+      "license_number": "BL-2022-8406",
+      "issue_date": "2022/08/10",
+      "business_activity": "تجارة المواد الغذائية",
+      "province": "ديالى"
+    },
+    "tax_card": {
+      "tax_id": "TIN-7905957",
+      "taxpayer_name": "علي كاظم حمزة المالكي",
+      "fiscal_year": "2022",
+      "issue_date": "2022/08/10"
+    }
+  },
+  "planted_defects": []
+}

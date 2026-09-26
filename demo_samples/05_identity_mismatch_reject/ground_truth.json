@@ -1,0 +1,36 @@
+{
+  "package_id": "PKG-0005",
+  "scenario": "identity_mismatch",
+  "expected_outcome": "HARD_MISMATCH",
+  "ground_truth": {
+    "national_id": {
+      "national_id": "199654645697",
+      "full_name": "سجاد طارق جليل الساعدي",
+      "mother_name": "زينب كريم",
+      "expiry_date": "2030/01/26",
+      "issue_date": "2020/01/26",
+      "province": "كربلاء"
+    },
+    "business_license": {
+      "business_name": "شركة عباس الزبيدي للتجارة المحدودة",
+      "full_name": "يوسف إبراهيم رشيد التميمي",
+      "license_number": "BL-2020-2191",
+      "issue_date": "2020/01/26",
+      "business_activity": "تجارة الأجهزة الكهربائية",
+      "province": "كربلاء"
+    },
+    "tax_card": {
+      "tax_id": "TIN-9293777",
+      "taxpayer_name": "يوسف إبراهيم رشيد التميمي",
+      "fiscal_year": "2020",
+      "issue_date": "2020/01/26"
+    }
+  },
+  "planted_defects": [
+    {
+      "type": "planted_identity_mismatch",
+      "nid_name": "سجاد طارق جليل الساعدي",
+      "secondary_name": "يوسف إبراهيم رشيد التميمي"
+    }
+  ]
+}

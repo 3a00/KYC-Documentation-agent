@@ -1,0 +1,36 @@
+{
+  "package_id": "PKG-0003",
+  "scenario": "blurred",
+  "expected_outcome": "HUMAN_ESCALATION",
+  "ground_truth": {
+    "national_id": {
+      "national_id": "197874688661",
+      "full_name": "كرار شاكر جبار الدليمي",
+      "mother_name": "إيمان حميد",
+      "expiry_date": "2031/11/25",
+      "issue_date": "2021/11/25",
+      "province": "ذي قار"
+    },
+    "business_license": {
+      "business_name": "شركة حسن الشمري للتجارة المحدودة",
+      "full_name": "كرار شاكر جبار الدليمي",
+      "license_number": "BL-2021-3984",
+      "issue_date": "2021/11/25",
+      "business_activity": "مقاولات عامة وتجهيزات",
+      "province": "ذي قار"
+    },
+    "tax_card": {
+      "tax_id": "TIN-9217230",
+      "taxpayer_name": "كرار شاكر جبار الدليمي",
+      "fiscal_year": "2021",
+      "issue_date": "2021/11/25"
+    }
+  },
+  "planted_defects": [
+    {
+      "type": "gaussian_blur",
+      "target_document": "national_id",
+      "kernel_size": 15
+    }
+  ]
+}

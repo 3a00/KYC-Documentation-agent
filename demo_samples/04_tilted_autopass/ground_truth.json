@@ -1,0 +1,36 @@
+{
+  "package_id": "PKG-0004",
+  "scenario": "tilted",
+  "expected_outcome": "AUTO_PASS",
+  "ground_truth": {
+    "national_id": {
+      "national_id": "199527943339",
+      "full_name": "عمر كريم رشيد الجبوري",
+      "mother_name": "نور صادق",
+      "expiry_date": "2033/12/28",
+      "issue_date": "2023/12/28",
+      "province": "واسط"
+    },
+    "business_license": {
+      "business_name": "شركة أحمد الزبيدي للتجارة المحدودة",
+      "full_name": "عمر كريم رشيد الجبوري",
+      "license_number": "BL-2023-5267",
+      "issue_date": "2023/12/28",
+      "business_activity": "تجارة المواد الغذائية",
+      "province": "واسط"
+    },
+    "tax_card": {
+      "tax_id": "TIN-1357037",
+      "taxpayer_name": "عمر كريم رشيد الجبوري",
+      "fiscal_year": "2023",
+      "issue_date": "2023/12/28"
+    }
+  },
+  "planted_defects": [
+    {
+      "type": "perspective_tilt",
+      "target_document": "national_id",
+      "max_tilt_ratio": 0.06
+    }
+  ]
+}
