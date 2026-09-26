@@ -128,31 +128,31 @@ def render_outcome_banner(dossier: OnboardingDossier) -> None:
         bg_color = "#dcfce7"
         border_color = "#22c55e"
         text_color = "#15803d"
-        title = "AUTO_PASS - قبول تلقائي"
-        description = "تم اجتياز كافة معايير الفحص بنجاح. الحقول الأساسية موثوقة بنسبة تفوق 85% والأسماء متطابقة عبر الوثائق."
+        title = "AUTO_PASS — Approved"
+        description = "All onboarding criteria successfully passed. Mandatory Tier 1 fields meet or exceed 85% calibrated confidence and applicant identity aligns across all documents."
     elif dossier.lifecycle_outcome == TriageLifecycle.HUMAN_ESCALATION:
         bg_color = "#fef3c7"
         border_color = "#f59e0b"
         text_color = "#b45309"
-        title = "HUMAN_ESCALATION - مراجعة يدوية مطلوبة"
-        description = "يتطلب الملف مراجعة موظف العمليات المختص بسبب تدني ثقة حقول أساسية أو تباين جزئي في الاسم."
+        title = "HUMAN_ESCALATION — Manual Review Required"
+        description = "Manual review required by an operations officer due to low field confidence or partial name discrepancy."
     else:
         bg_color = "#fee2e2"
         border_color = "#ef4444"
         text_color = "#b91c1c"
-        title = "HARD_MISMATCH - رفض بسبب عدم تطابق جوهري"
-        description = "تم رصد اختلاف جوهري غير قابل للتسوية في الهوية عبر الوثائق المقدمة (نسبة التطابق أقل من 70%)."
+        title = "HARD_MISMATCH — Rejected (Identity Conflict)"
+        description = "Critical irreconcilable identity discrepancy detected across submitted documents (name similarity < 70%)."
 
     st.markdown(
         f"""
         <div style="
             background-color: {bg_color};
-            border-right: 8px solid {border_color};
+            border-left: 8px solid {border_color};
             border-radius: 8px;
             padding: 18px 24px;
             margin-bottom: 20px;
-            direction: rtl;
-            text-align: right;
+            direction: ltr;
+            text-align: left;
             font-family: sans-serif;
         ">
             <h2 style="color: {text_color}; margin: 0 0 8px 0; font-size: 22px;">{title}</h2>
@@ -166,31 +166,31 @@ def render_outcome_banner(dossier: OnboardingDossier) -> None:
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         st.metric(
-            label="معدل الثقة الإجمالي (Overall Confidence)",
+            label="Overall Confidence",
             value=f"{dossier.overall_confidence:.1%}",
         )
     with m2:
-        t1_delta = "ناجح (>= 85%)" if dossier.tier1_passed else "متعثر (< 85%)"
+        t1_delta = "Passed (>= 85%)" if dossier.tier1_passed else "Deficient (< 85%)"
         st.metric(
-            label="أدنى ثقة حقل أساسي (Worst Tier 1)",
+            label="Worst Mandatory Field (Tier 1)",
             value=f"{dossier.min_tier1_confidence:.1%}",
             delta=t1_delta,
             delta_color="normal" if dossier.tier1_passed else "inverse",
         )
     with m3:
         match_val = f"{dossier.min_matching_score:.1%}" if dossier.min_matching_score is not None else "N/A"
-        match_delta = "تطابق تام" if (dossier.min_matching_score or 0) >= 0.88 else "مراجعة"
+        match_delta = "Full Match" if (dossier.min_matching_score or 0) >= 0.88 else "Review"
         st.metric(
-            label="أدنى تطابق أسماء (Min Name Match)",
+            label="Min Name Match",
             value=match_val,
             delta=match_delta if dossier.min_matching_score is not None else None,
         )
     with m4:
         anomaly_count = len(dossier.tier1_anomalies)
         st.metric(
-            label="الحقول الأساسية المتعثرة (Tier 1 Anomalies)",
+            label="Tier 1 Anomalies",
             value=str(anomaly_count),
-            delta="خال من العيوب" if anomaly_count == 0 else f"{anomaly_count} عيب",
+            delta="Zero Defects" if anomaly_count == 0 else f"{anomaly_count} Defect{'s' if anomaly_count > 1 else ''}",
             delta_color="normal" if anomaly_count == 0 else "inverse",
         )
 
@@ -200,44 +200,30 @@ def main() -> None:
     load_dotenv()
     ensure_ipv4_socket_resolution()
     st.set_page_config(
-        page_title="ZainCash KYC Document Agent",
+        page_title="KYC Document Verification Agent",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    # Scoped RTL Stylesheet: targets tab panels safely without requiring unsafe_allow_html on user text
     st.markdown(
         """
         <style>
-        .stTabs [data-baseweb="tab-panel"] [data-testid="stMarkdownContainer"] {
-            direction: rtl;
-            text-align: right;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            line-height: 1.6;
-        }
-        .stTabs [data-baseweb="tab-panel"] table {
-            direction: rtl;
-            text-align: right;
-            width: 100%;
-        }
-        .stTabs [data-baseweb="tab-panel"] th,
-        .stTabs [data-baseweb="tab-panel"] td {
-            text-align: right !important;
-            padding: 8px 12px;
+        [data-testid="stHeaderActionElements"] {
+            display: none !important;
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    st.title("ZainCash KYC Document Verification Agent")
+    st.title("KYC Document Verification Agent")
     st.markdown(
-        "**منظومة التدقيق والتحقق البصري لوثائق الانضمام - البطاقة الوطنية الموحدة، إجازة المهنة، والهوية الضريبية.**"
+        "**Automated optical verification and compliance triage platform for Iraqi onboarding documents (Unified National Card, Business License, and Tax Card).**"
     )
 
     # 1. Sidebar Controls
     with st.sidebar:
-        st.header("إعدادات المنظومة (System Settings)")
+        st.header("System Settings")
 
         env_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
         has_env_key = bool(env_api_key)
@@ -247,7 +233,7 @@ def main() -> None:
             "Gemini API Key (Override)",
             value="",
             type="password",
-            placeholder="Enter key to override .env..." if has_env_key else "AIzaSy...",
+            placeholder="Enter key to override .env..." if has_env_key else "Enter API key...",
             help="Leave blank to use GEMINI_API_KEY loaded securely from environment or .env file.",
         )
         api_key = custom_key.strip() if custom_key.strip() else env_api_key
@@ -261,10 +247,10 @@ def main() -> None:
             st.error("No API Key detected. Live Gemini API is strictly required.")
 
         st.divider()
-        st.subheader("طريقة إدخال الوثائق (Input Mode)")
+        st.subheader("Document Input Mode")
         input_mode = st.radio(
-            "اختر المصدر:",
-            options=["1-Click Preset Scenario (حالات تجريبية جاهزة)", "Upload Custom Documents (رفع وثائق)"],
+            "Choose Input Source:",
+            options=["1-Click Preset Scenario", "Upload Custom Documents"],
             index=0,
         )
 
@@ -275,34 +261,31 @@ def main() -> None:
 
         if "1-Click" in input_mode:
             scenario_name = st.selectbox(
-                "اختر الحالة الاختبارية:",
+                "Select Test Scenario:",
                 options=[
-                    "Clean Baseline - Auto-Pass (حزمة نظامية نظيفة)",
-                    "Specular Glare - Human Escalation (انعكاس ضوئي ساطع)",
-                    "Gaussian Blur - Human Escalation (ضبابية بصرية)",
-                    "Perspective Tilt - Auto-Pass (انحراف زاوي مقروء)",
-                    "Identity Mismatch - Hard Mismatch (عدم تطابق في الهوية)",
+                    "Clean Baseline — Auto-Pass",
+                    "Specular Glare — Human Escalation",
+                    "Gaussian Blur — Human Escalation",
+                    "Perspective Tilt — Auto-Pass",
+                    "Identity Mismatch — Hard Mismatch",
                 ],
             )
             scenario_map = {
-                "Clean Baseline - Auto-Pass (حزمة نظامية نظيفة)": BenchmarkScenario.CLEAN,
-                "Specular Glare - Human Escalation (انعكاس ضوئي ساطع)": BenchmarkScenario.SPECULAR_GLARE,
-                "Gaussian Blur - Human Escalation (ضبابية بصرية)": BenchmarkScenario.BLURRED,
-                "Perspective Tilt - Auto-Pass (انحراف زاوي مقروء)": BenchmarkScenario.TILTED,
-                "Identity Mismatch - Hard Mismatch (عدم تطابق في الهوية)": BenchmarkScenario.IDENTITY_MISMATCH,
+                "Clean Baseline — Auto-Pass": BenchmarkScenario.CLEAN,
+                "Specular Glare — Human Escalation": BenchmarkScenario.SPECULAR_GLARE,
+                "Gaussian Blur — Human Escalation": BenchmarkScenario.BLURRED,
+                "Perspective Tilt — Auto-Pass": BenchmarkScenario.TILTED,
+                "Identity Mismatch — Hard Mismatch": BenchmarkScenario.IDENTITY_MISMATCH,
             }
             preset_scenario = scenario_map[scenario_name]
         else:
-            st.markdown("**ارفع صور الوثائق الثلاث (JPG / PNG):**")
-            uploaded_nid = st.file_uploader("1. البطاقة الوطنية الموحدة", type=["png", "jpg", "jpeg"])
-            uploaded_biz = st.file_uploader("2. إجازة ممارسة المهنة", type=["png", "jpg", "jpeg"])
-            uploaded_tax = st.file_uploader("3. الهوية الضريبية", type=["png", "jpg", "jpeg"])
+            st.markdown("**Upload the three document images (PNG / JPG / JPEG):**")
+            uploaded_nid = st.file_uploader("1. Unified National Card", type=["png", "jpg", "jpeg"])
+            uploaded_biz = st.file_uploader("2. Business License / Commercial Registry", type=["png", "jpg", "jpeg"])
+            uploaded_tax = st.file_uploader("3. Tax Card (TIN)", type=["png", "jpg", "jpeg"])
 
         st.divider()
-        st.subheader("خيارات العرض التشخيصي")
-        show_bboxes = st.checkbox("إظهار مربعات الإحاطة التشخيصية (Overlay Bounding Boxes)", value=True)
-
-        run_btn = st.button("تشغيل الفحص والتحقق (Run Verification)", type="primary", use_container_width=True)
+        run_btn = st.button("Run Verification", type="primary", use_container_width=True)
 
     # 2. Acquire Working Images with Input Signature Tracking
     img_nid: Image.Image | None = None
@@ -325,7 +308,7 @@ def main() -> None:
                 img_biz = Image.open(uploaded_biz).convert("RGB")
                 img_tax = Image.open(uploaded_tax).convert("RGB")
             except (Image.UnidentifiedImageError, OSError) as err:
-                st.error(f"يتعذر قراءة ملفات الصور المرفوعة: {err}")
+                st.error(f"Cannot read uploaded image files: {err}")
                 return
 
     # Check for input selection changes to prevent stale results
@@ -339,14 +322,14 @@ def main() -> None:
     # 3. Pipeline Execution & State Management
     if run_btn:
         if not has_active_key:
-            st.error("مفتاح Gemini API مطلوب لتشغيل المنظومة. يرجى إدخال مفتاح API في الشريط الجانبي أو في ملف .env للمتابعة.")
+            st.error("Gemini API key is required to run verification. Please enter an API key in the sidebar or in .env.")
             return
 
         if img_nid is None or img_biz is None or img_tax is None:
-            st.error("يرجى تحميل جميع الوثائق الثلاث أو اختيار حالة تجريبية جاهزة للمتابعة.")
+            st.error("Please upload all three documents or select a preset scenario to proceed.")
             return
 
-        with st.spinner("جاري استخراج البيانات وفحص التوافقية ومطابقة الهوية عبر Gemini API..."):
+        with st.spinner("Extracting document data and verifying compliance via Gemini API..."):
             extractor = GeminiMultimodalExtractor(api_key=api_key)
 
             dossier = verify_onboarding_package(
@@ -358,6 +341,7 @@ def main() -> None:
             st.session_state["dossier"] = dossier
             st.session_state["current_images"] = (img_nid, img_biz, img_tax)
             st.session_state["evaluated_input_id"] = active_input_id
+            is_input_changed = False
 
     # 4. Display Results
     dossier: OnboardingDossier | None = st.session_state.get("dossier")
@@ -369,49 +353,38 @@ def main() -> None:
         disp_nid, disp_biz, disp_tax = img_nid, img_biz, img_tax
 
     # Side-by-side Document Previews
-    st.subheader("معاينة الوثائق المفحوصة (Side-by-Side Documents)")
+    st.subheader("Side-by-Side Document Previews")
     if disp_nid is not None and disp_biz is not None and disp_tax is not None:
         c1, c2, c3 = st.columns(3)
 
-        anomalies = dossier.tier1_anomalies + dossier.tier2_warnings if dossier else []
-
-        if show_bboxes and dossier and not is_input_changed:
-            annotated_nid = annotate_document_image(disp_nid, anomalies, "national_id")
-            annotated_biz = annotate_document_image(disp_biz, anomalies, "business_license")
-            annotated_tax = annotate_document_image(disp_tax, anomalies, "tax_card")
-        else:
-            annotated_nid = disp_nid
-            annotated_biz = disp_biz
-            annotated_tax = disp_tax
-
         with c1:
-            st.markdown("##### 1. البطاقة الوطنية الموحدة (National ID)")
-            st.image(annotated_nid, use_container_width=True)
+            st.markdown("**1. Unified National Card (National ID)**")
+            st.image(disp_nid, use_container_width=True)
         with c2:
-            st.markdown("##### 2. إجازة ممارسة المهنة (Business License)")
-            st.image(annotated_biz, use_container_width=True)
+            st.markdown("**2. Business License**")
+            st.image(disp_biz, use_container_width=True)
         with c3:
-            st.markdown("##### 3. الهوية الضريبية (Tax Card)")
-            st.image(annotated_tax, use_container_width=True)
+            st.markdown("**3. Tax Card (TIN)**")
+            st.image(disp_tax, use_container_width=True)
     else:
-        st.info("اختر حالة اختبارية أو قم برفع الوثائق من القائمة الجانبية لبدء الفحص.")
+        st.info("Select a test scenario or upload documents from the sidebar to begin.")
 
     if is_input_changed:
-        st.info("تم تغيير إدخال الوثائق. اضغط على زر 'تشغيل الفحص والتحقق' لفحص الحزمة الجديدة.")
+        st.info("Document input changed. Click 'Run Verification' to evaluate the new package.")
 
     if dossier is not None and not is_input_changed:
         if dossier.extraction_package is not None:
             pkg = dossier.extraction_package
             api_errors = []
             for doc_title, doc_res in [
-                ("البطاقة الوطنية الموحدة", pkg.national_id),
-                ("إجازة ممارسة المهنة", pkg.business_license),
-                ("الهوية الضريبية", pkg.tax_card),
+                ("Unified National Card", pkg.national_id),
+                ("Business License", pkg.business_license),
+                ("Tax Card", pkg.tax_card),
             ]:
                 if doc_res.audit.retry_error and "WorkerException" in doc_res.audit.retry_error:
                     api_errors.append(f"{doc_title}: {doc_res.audit.retry_error}")
             if api_errors:
-                st.error("تنبيه: تعذر إكمال استخراج بعض الوثائق عبر Gemini API بسبب خطأ في الخدمة:")
+                st.error("Warning: Document extraction failed on some documents due to an upstream API error:")
                 for err in api_errors:
                     st.caption(err)
 
@@ -420,34 +393,39 @@ def main() -> None:
 
         # Multi-tab dossier viewer
         tab1, tab2, tab3 = st.tabs([
-            "تقرير التدقيق والاستثناءات (Arabic Dossier)",
-            "مطابقة سلسلة الأسماء (Patronymic Alignment)",
-            "سجل التدقيق والبيانات التقنية (Audit Trail & JSON)",
+            "Verification & Audit Dossier",
+            "Patronymic Name Alignment",
+            "Audit Trail & Raw Schemas",
         ])
 
         with tab1:
-            # Safe Native Markdown Rendering without unsafe_allow_html
-            st.markdown(dossier.to_markdown_report(), unsafe_allow_html=False)
+            st.markdown(dossier.to_markdown_report_en(), unsafe_allow_html=False)
 
         with tab2:
-            st.markdown("### تحليل مطابقة الاسم الرباعي واللقب عبر الوثائق")
+            st.markdown("### Cross-Document Patronymic Name Alignment Analysis")
             if dossier.name_mismatches:
+                slot_names_en = {
+                    "given": "Given Name",
+                    "father": "Father's Name",
+                    "grandfather": "Grandfather's Name",
+                    "surname": "Surname / Clan",
+                }
                 for mismatch in dossier.name_mismatches:
-                    safe_doc_a = html.escape(mismatch.doc_a_name)
-                    safe_doc_b = html.escape(mismatch.doc_b_name)
+                    safe_doc_a = html.escape(mismatch.doc_a_name.replace("_", " ").title())
+                    safe_doc_b = html.escape(mismatch.doc_b_name.replace("_", " ").title())
                     safe_name_a = html.escape(mismatch.raw_name_a)
                     safe_name_b = html.escape(mismatch.raw_name_b)
 
                     with st.expander(
-                        f"مقارنة: {safe_doc_a} - {safe_doc_b} (نسبة التشابه: {mismatch.similarity_score:.1%})",
+                        f"Comparison: {safe_doc_a} vs {safe_doc_b} (Similarity: {mismatch.similarity_score:.1%})",
                         expanded=True,
                     ):
-                        st.markdown(f"**الاسم في الوثيقة الأولى:** `{safe_name_a}`")
-                        st.markdown(f"**الاسم في الوثيقة الثانية:** `{safe_name_b}`")
-                        st.markdown(f"**تصنيف المطابقة:** `{mismatch.triage_band.value}`")
+                        st.markdown(f"**Name in First Document:** `{safe_name_a}`")
+                        st.markdown(f"**Name in Second Document:** `{safe_name_b}`")
+                        st.markdown(f"**Triage Classification:** `{mismatch.triage_band.value}`")
 
                         if mismatch.token_details:
-                            st.markdown("##### جدول تفصيل الأجزاء الأربعة (Patronymic Slots Breakdown):")
+                            st.markdown("##### Detailed Patronymic Slot Breakdown:")
                             slot_rows = []
                             for slot in mismatch.token_details:
                                 if slot.similarity >= 0.88:
@@ -457,34 +435,34 @@ def main() -> None:
                                 else:
                                     status_icon = "[MISMATCH]"
                                 slot_rows.append({
-                                    "الحالة": status_icon,
-                                    "الجزء": slot.role.value,
-                                    "الاسم في (أ)": slot.token_a or "—",
-                                    "الاسم في (ب)": slot.token_b or "—",
-                                    "نسبة التشابه": f"{slot.similarity:.1%}",
-                                    "وزن الجزء": f"{slot.weight:.2f}",
+                                    "Status": status_icon,
+                                    "Patronymic Slot": slot_names_en.get(slot.role.value, slot.role.value.title()),
+                                    "Name in (A)": slot.token_a or "—",
+                                    "Name in (B)": slot.token_b or "—",
+                                    "Similarity": f"{slot.similarity:.1%}",
+                                    "Weight": f"{slot.weight:.2f}",
                                 })
                             st.table(slot_rows)
 
-                        if mismatch.audit_notes_ar:
-                            st.markdown("##### ملاحظات الفحص:")
-                            for note in mismatch.audit_notes_ar:
+                        if mismatch.audit_notes:
+                            st.markdown("##### Inspection Notes:")
+                            for note in mismatch.audit_notes:
                                 st.markdown(f"- {note}")
             else:
-                st.success("تطابق كامل في الأسماء عبر كافة الوثائق دون تسجيل أي تباين.")
+                st.success("Complete identity match across all documents with zero discrepancies.")
 
         with tab3:
-            st.markdown("### السجل الكامل لعمليات الفحص (Chronological Audit Trail)")
-            for entry in dossier.audit_trail_ar:
+            st.markdown("### Chronological System Audit Trail")
+            for entry in dossier.audit_trail:
                 st.markdown(f"- {entry}")
 
             st.divider()
-            st.markdown("### البيانات المستخرجة الخام (Extracted JSON Schemas)")
+            st.markdown("### Extracted Raw Schemas (JSON)")
             if dossier.extraction_package:
                 pkg = dossier.extraction_package
                 col_a, col_b, col_c = st.columns(3)
                 with col_a:
-                    st.markdown("**National ID Schema**")
+                    st.markdown("**Unified National Card Schema**")
                     st.json(pkg.national_id.schema.model_dump())
                 with col_b:
                     st.markdown("**Business License Schema**")
@@ -493,7 +471,7 @@ def main() -> None:
                     st.markdown("**Tax Card Schema**")
                     st.json(pkg.tax_card.schema.model_dump())
             else:
-                st.info("البيانات الخام غير متوفرة لحزمة الفحص الحالية.")
+                st.info("Raw schema data is not available for the current evaluation package.")
 
 
 if __name__ == "__main__":

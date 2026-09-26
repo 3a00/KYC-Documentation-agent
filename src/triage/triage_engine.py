@@ -280,6 +280,148 @@ class OnboardingDossier:
 
         return "\n".join(lines)
 
+    def to_markdown_report_en(self) -> str:
+        """Generate a structured, presentation-ready English Markdown exception report."""
+        lines: list[str] = []
+        lines.append("# KYC Onboarding Verification & Audit Dossier")
+        lines.append("")
+
+        # Decision Header
+        if self.lifecycle_outcome == TriageLifecycle.AUTO_PASS:
+            lines.append("## Final Decision: **Approved (AUTO_PASS)**")
+            lines.append("> All onboarding documents, mandatory fields, and identity cross-checks successfully verified.")
+        elif self.lifecycle_outcome == TriageLifecycle.HUMAN_ESCALATION:
+            lines.append("## Final Decision: **Manual Review Required (HUMAN_ESCALATION)**")
+            lines.append("> Manual inspection by a compliance officer is required for the reasons detailed below.")
+        else:
+            lines.append("## Final Decision: **Rejected (HARD_MISMATCH)**")
+            lines.append("> Critical irreconcilable identity discrepancy detected across submitted documents.")
+
+        lines.append("")
+        min_match_str = f"`{self.min_matching_score:.1%}`" if self.min_matching_score is not None else "*(N/A)*"
+        lines.append(f"- **Overall Calibrated Confidence**: `{self.overall_confidence:.1%}`")
+        lines.append(f"- **Worst Mandatory Field (Tier 1)**: `{self.min_tier1_confidence:.1%}` (Threshold: 85%)")
+        lines.append(f"- **Minimum Name Match Score**: {min_match_str} (Auto-pass threshold: 88%)")
+        lines.append(f"- **Mandatory Fields Integrity**: `{'PASSED' if self.tier1_passed else 'FAILED'}`")
+        lines.append("")
+
+        # Actionable Summary
+        if self.lifecycle_outcome == TriageLifecycle.AUTO_PASS:
+            actionable_summary_en = (
+                "Automatic approval granted. All mandatory (Tier 1) fields extracted with >= 85% confidence, "
+                "and applicant name alignment across all documents exceeds the automatic pass threshold (88%)."
+            )
+        elif self.lifecycle_outcome == TriageLifecycle.HUMAN_ESCALATION:
+            actionable_summary_en = (
+                "File referred for manual compliance review. Document contains degraded mandatory fields "
+                "or partial name alignment variance requiring human verification."
+            )
+        else:
+            actionable_summary_en = (
+                "Application rejected due to an irreconcilable identity conflict across submitted documents "
+                "(name matching similarity < 70%)."
+            )
+        lines.append("### Summary & Recommended Action")
+        lines.append(actionable_summary_en)
+        lines.append("")
+
+        # Tier 1 Anomalies Table
+        if self.tier1_anomalies:
+            lines.append("### Deficient Mandatory Fields (Tier 1 — Requires >= 85% Confidence)")
+            lines.append("| Document | Field | Extracted Value | Confidence | Threshold | Coordinates | Defect Reason |")
+            lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
+            for anomaly in self.tier1_anomalies:
+                val = f"`{anomaly.value}`" if anomaly.value else "*(Obscured / Illegible)*"
+                bbox_str = (
+                    f"`ymin={anomaly.bbox[0]}, xmin={anomaly.bbox[1]}, ymax={anomaly.bbox[2]}, xmax={anomaly.bbox[3]}`"
+                    if anomaly.bbox
+                    else "*(N/A)*"
+                )
+                doc_name_en = anomaly.document_type.replace("_", " ").title()
+                field_name_en = anomaly.field_name.replace("_", " ").title()
+                lines.append(
+                    f"| {doc_name_en} | {field_name_en} | {val} | "
+                    f"`{anomaly.confidence:.1%}` | `{anomaly.threshold:.0%}` | {bbox_str} | {anomaly.reason} |"
+                )
+            lines.append("")
+
+        # Cross-Document Name Comparisons
+        if self.name_mismatches:
+            lines.append("### Cross-Document Identity Reconciliation")
+            lines.append("| Comparison Pair | Name in First Document | Name in Second Document | Similarity | Classification | Inspection Notes |")
+            lines.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
+            for mismatch in self.name_mismatches:
+                notes_str = " - ".join(mismatch.audit_notes) if mismatch.audit_notes else "Full Match"
+                pair_label = f"{mismatch.doc_a_name.replace('_', ' ').title()} vs {mismatch.doc_b_name.replace('_', ' ').title()}"
+                lines.append(
+                    f"| {pair_label} | `{mismatch.raw_name_a}` | "
+                    f"`{mismatch.raw_name_b}` | `{mismatch.similarity_score:.1%}` | `{mismatch.triage_band.value}` | {notes_str} |"
+                )
+            lines.append("")
+
+            # Render Aligned Patronymic Slot Diff Table
+            has_slots = any(bool(mismatch.token_details) for mismatch in self.name_mismatches)
+            if has_slots:
+                lines.append("#### Detailed Patronymic Slot Breakdown")
+                lines.append("| Comparison Pair | Slot | Name in Doc (A) | Name in Doc (B) | Similarity | Weight | Impact |")
+                lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
+                slot_names_en = {
+                    "given": "Given Name",
+                    "father": "Father's Name",
+                    "grandfather": "Grandfather's Name",
+                    "surname": "Surname / Clan",
+                }
+                for mismatch in self.name_mismatches:
+                    pair_label = f"{mismatch.doc_a_name.replace('_', ' ').title()} vs {mismatch.doc_b_name.replace('_', ' ').title()}"
+                    sorted_slots = sorted(mismatch.token_details, key=lambda slot: slot.similarity)
+                    is_escalated_or_mismatch = mismatch.triage_band in (
+                        MatchBand.HUMAN_ESCALATION,
+                        MatchBand.HARD_MISMATCH,
+                    )
+                    for slot in sorted_slots:
+                        role_key = slot.role.value
+                        role_str = slot_names_en.get(role_key, role_key.title())
+                        tok_a = f"`{slot.token_a}`" if slot.token_a else "*(Omitted)*"
+                        tok_b = f"`{slot.token_b}`" if slot.token_b else "*(Omitted)*"
+
+                        if is_escalated_or_mismatch and slot.similarity < 0.88:
+                            impact = "**Divergent**"
+                            sim_str = f"**{slot.similarity:.1%}**"
+                        elif slot.similarity >= 0.88:
+                            impact = "Match"
+                            sim_str = f"{slot.similarity:.1%}"
+                        else:
+                            impact = "Acceptable Variance"
+                            sim_str = f"{slot.similarity:.1%}"
+
+                        lines.append(
+                            f"| {pair_label} | {role_str} | {tok_a} | {tok_b} | {sim_str} | `{slot.weight:.2f}` | {impact} |"
+                        )
+                lines.append("")
+
+        # Tier 2 Warnings
+        if self.tier2_warnings:
+            lines.append("### Secondary Field Warnings (Tier 2 — Non-Blocking)")
+            lines.append("| Document | Field | Value | Confidence | Note |")
+            lines.append("| :--- | :--- | :--- | :--- | :--- |")
+            for warning in self.tier2_warnings:
+                val = f"`{warning.value}`" if warning.value else "*(Obscured)*"
+                doc_name_en = warning.document_type.replace("_", " ").title()
+                field_name_en = warning.field_name.replace("_", " ").title()
+                lines.append(
+                    f"| {doc_name_en} | {field_name_en} | {val} | `{warning.confidence:.1%}` | {warning.reason} |"
+                )
+            lines.append("")
+
+        # System Audit Log
+        if self.audit_trail:
+            lines.append("### Chronological System Audit Trail")
+            for entry in self.audit_trail:
+                lines.append(f"- {entry}")
+            lines.append("")
+
+        return "\n".join(lines)
+
 
 def _inspect_document_fields(
     doc_type_key: str,
