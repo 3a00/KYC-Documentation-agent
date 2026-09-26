@@ -11,6 +11,7 @@ from enum import Enum
 import json
 import logging
 import math
+import os
 import socket
 import time
 from typing import Any
@@ -403,7 +404,7 @@ class GeminiMultimodalExtractor:
     def __init__(
         self,
         client: genai.Client | None = None,
-        model_name: str = "gemini-3.8-flash",
+        model_name: str | None = None,
         request_timeout_seconds: float = 25.0,
         api_key: str | None = None,
     ) -> None:
@@ -421,7 +422,7 @@ class GeminiMultimodalExtractor:
             except Exception:
                 # Support offline environments/tests when GEMINI_API_KEY is not set
                 self.client = genai.Client(api_key="mock_key_for_testing", http_options=http_options)
-        self.model_name = model_name
+        self.model_name = model_name or os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
     def _call_gemini_structured(
         self,
