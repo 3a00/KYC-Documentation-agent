@@ -43,6 +43,27 @@ graph TD
 
 ---
 
+## Visual Verification Dashboard
+
+The interactive verification dashboard provides an end-to-end interface for document ingestion, optical diagnostics, and audit trail inspection.
+
+### 1. Document Intake & Side-by-Side Previews
+Front-face previews of the Unified National Card, Business License, and Tax Card with dual input modes (1-click presets or custom upload):
+
+![Document Previews](docs/images/01_document_previews.png)
+
+### 2. Live Decision Banner & Triage Metrics
+Prominent outcome banners (`AUTO_PASS`, `HUMAN_ESCALATION`, `HARD_MISMATCH`) with live KPI metrics:
+
+![Triage Decision](docs/images/02_triage_decision.png)
+
+### 3. Cross-Document Identity Reconciliation & Patronymic Breakdown
+Slot-by-slot patronymic chain breakdown (Given, Father, Grandfather, Surname), match weights, and chronological audit trail:
+
+![Patronymic Alignment](docs/images/03_patronymic_alignment.png)
+
+---
+
 ## Core Pipeline Components
 
 ### 1. Isolated Document-Parallel Multimodal Extraction
@@ -91,6 +112,8 @@ graph TD
 ├── app.py                      # Root launcher for Streamlit dashboard
 ├── requirements.txt            # Python dependencies
 ├── CONTEXT.md                  # Domain definitions and ubiquitous language
+├── docs/
+│   └── images/                 # Web verification dashboard screenshots
 ├── src/
 │   ├── ui/
 │   │   └── app.py              # Streamlit web verification dashboard
