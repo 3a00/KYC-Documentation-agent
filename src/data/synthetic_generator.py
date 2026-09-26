@@ -6,6 +6,7 @@ exact pixel bounding boxes, and localized optical defects (glare, blur, tilt).
 """
 
 import json
+import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -215,65 +216,228 @@ def render_national_card(
     identity: dict[str, str],
     fonts: dict[str, ImageFont.FreeTypeFont],
 ) -> tuple[Image.Image, dict[str, DocumentField]]:
-    """Render authentic synthetic front-face Iraqi Unified National Card."""
+    """Render authentic synthetic front-face Iraqi Unified National Card matching official layout."""
     width, height = 850, 540
-    card = Image.new("RGB", (width, height), (242, 246, 250))
+    card = Image.new("RGB", (width, height), (252, 251, 248))
     draw = ImageDraw.Draw(card)
 
-    # Outer border and header banner
-    draw.rounded_rectangle(
-        [(15, 15), (width - 15, height - 15)],
-        radius=18,
-        outline=(170, 185, 205),
-        width=3,
+    dark_gray = (35, 40, 50)
+    label_gray = (50, 55, 65)
+    eagle_gold = (195, 155, 45)
+    iraq_red = (206, 17, 38)
+    iraq_black = (0, 0, 0)
+    iraq_green = (0, 122, 61)
+
+    # Outer card border
+    draw.rounded_rectangle([(8, 8), (width - 8, height - 8)], radius=18, outline=(210, 205, 195), width=2)
+
+    # Background Guilloche / Security Pattern
+    for y_offset in range(25, height - 20, 16):
+        points = []
+        for x_coord in range(12, width - 12, 6):
+            y_coord = y_offset + int(4 * math.sin(x_coord / 28.0) + 2 * math.cos(x_coord / 45.0))
+            points.append((x_coord, y_coord))
+        draw.line(points, fill=(238, 242, 244), width=1)
+
+    for x_offset in range(30, width - 20, 24):
+        points = []
+        for y_coord in range(12, height - 12, 6):
+            x_coord = x_offset + int(3 * math.sin(y_coord / 24.0))
+            points.append((x_coord, y_coord))
+        draw.line(points, fill=(244, 240, 232), width=1)
+
+    # Golden sunburst rosette in top right
+    sun_cx, sun_cy = width - 110, 150
+    for radius in range(30, 140, 10):
+        draw.arc([sun_cx - radius, sun_cy - radius, sun_cx + radius, sun_cy + radius], start=0, end=360, fill=(250, 236, 208), width=1)
+    for angle in range(0, 360, 15):
+        rad = math.radians(angle)
+        x_target = sun_cx + int(135 * math.cos(rad))
+        y_target = sun_cy + int(135 * math.sin(rad))
+        draw.line([(sun_cx, sun_cy), (x_target, y_target)], fill=(252, 241, 218), width=1)
+
+    # Watermark Eagle in center background
+    center_x, center_y, emblem_size = 460, 310, 105
+    draw.polygon([
+        (center_x, center_y + emblem_size // 2),
+        (center_x - emblem_size // 3, center_y),
+        (center_x - emblem_size // 3, center_y - emblem_size // 3),
+        (center_x + emblem_size // 3, center_y - emblem_size // 3),
+        (center_x + emblem_size // 3, center_y),
+    ], outline=(235, 226, 208), width=2)
+    draw.line(
+        [(center_x - emblem_size // 3, center_y - emblem_size // 4), (center_x - emblem_size, center_y - emblem_size // 2), (center_x - emblem_size // 2, center_y + emblem_size // 3)],
+        fill=(235, 226, 208),
+        width=2,
     )
-    draw.rectangle([(20, 20), (width - 20, 85)], fill=(32, 60, 100))
-
-    header_text = format_arabic("جمهورية العراق - وزارة الداخلية - البطاقة الوطنية الموحدة")
-    draw.text(
-        (width // 2, 52),
-        header_text,
-        font=fonts["title"],
-        fill=(255, 255, 255),
-        anchor="mm",
+    draw.line(
+        [(center_x + emblem_size // 3, center_y - emblem_size // 4), (center_x + emblem_size, center_y - emblem_size // 2), (center_x + emblem_size // 2, center_y + emblem_size // 3)],
+        fill=(235, 226, 208),
+        width=2,
     )
 
-    # Photo box placeholder (Right-hand side per standard Iraqi National Card layout)
-    photo_box = [(width - 210, 110), (width - 35, 340)]
-    draw.rectangle(photo_box, fill=(225, 232, 242), outline=(150, 170, 195), width=2)
-    draw.text(
-        (width - 122, 225),
-        format_arabic("صورة شخصية"),
-        font=fonts["label"],
-        fill=(120, 140, 160),
-        anchor="mm",
+    # Top Header (Arabic only, per instruction)
+    header_font = ImageFont.truetype(fonts["header"].path, 18)
+    draw.text((width - 45, 30), format_arabic("جمهورية العراق"), font=header_font, fill=dark_gray, anchor="ra")
+    draw.text((width - 45, 60), format_arabic("وزارة الداخلية"), font=header_font, fill=dark_gray, anchor="ra")
+    draw.text((45, 35), format_arabic("مديرية الجنسية العامة"), font=header_font, fill=dark_gray, anchor="la")
+
+    # Emblem of Iraq (Eagle with Flag Shield)
+    emblem_cx = width // 2
+    emblem_cy = 46
+    draw.polygon([
+        (emblem_cx, emblem_cy - 22), (emblem_cx - 16, emblem_cy - 12),
+        (emblem_cx - 20, emblem_cy + 8), (emblem_cx - 12, emblem_cy + 22),
+        (emblem_cx, emblem_cy + 26), (emblem_cx + 12, emblem_cy + 22),
+        (emblem_cx + 20, emblem_cy + 8), (emblem_cx + 16, emblem_cy - 12),
+    ], fill=eagle_gold, outline=(155, 120, 20), width=1)
+    draw.polygon([(emblem_cx, emblem_cy - 22), (emblem_cx - 6, emblem_cy - 18), (emblem_cx, emblem_cy - 16)], fill=(155, 120, 20))
+    shield_x, shield_y = emblem_cx - 8, emblem_cy - 6
+    draw.rectangle([(shield_x, shield_y), (shield_x + 16, shield_y + 6)], fill=iraq_red)
+    draw.rectangle([(shield_x, shield_y + 6), (shield_x + 16, shield_y + 13)], fill=(255, 255, 255))
+    draw.rectangle([(shield_x, shield_y + 13), (shield_x + 16, shield_y + 20)], fill=iraq_black)
+    draw.rectangle([(shield_x, shield_y), (shield_x + 16, shield_y + 20)], outline=(120, 95, 20), width=1)
+    draw.text((emblem_cx, shield_y + 9), "••", font=fonts["label"], fill=iraq_green, anchor="mm")
+    draw.rectangle([(emblem_cx - 18, emblem_cy + 26), (emblem_cx + 18, emblem_cy + 30)], fill=iraq_green)
+
+    # Title & National ID Number
+    title_font = ImageFont.truetype(fonts["title"].path, 18)
+    id_font = ImageFont.truetype(fonts["title"].path, 28)
+    draw.text((430, 115), format_arabic("البطاقة الوطنية"), font=title_font, fill=dark_gray, anchor="mm")
+    id_bbox = draw.textbbox((430, 150), identity["national_id"], font=id_font, anchor="mm")
+    draw.text((430, 150), identity["national_id"], font=id_font, fill=(15, 20, 30), anchor="mm")
+
+    # Blue Hologram Rosette Top Right
+    rosette_cx, rosette_cy, r_size = width - 105, 115, 36
+    for r_step in range(r_size, 0, -4):
+        draw.ellipse([rosette_cx - r_step, rosette_cy - r_step, rosette_cx + r_step, rosette_cy + r_step], outline=(50, 110, 200), width=1)
+    draw.ellipse([rosette_cx - 22, rosette_cy - 22, rosette_cx + 22, rosette_cy + 22], fill=(45, 105, 195))
+    draw.ellipse([rosette_cx - 13, rosette_cy - 13, rosette_cx + 13, rosette_cy + 13], fill=(70, 130, 220))
+    draw.ellipse([rosette_cx - 7, rosette_cy - 12, rosette_cx + 7, rosette_cy - 2], fill=(120, 175, 245))
+    draw.chord([rosette_cx - 11, rosette_cy, rosette_cx + 11, rosette_cy + 15], start=180, end=0, fill=(120, 175, 245))
+
+    # Citizen Photo on Left
+    photo_rect = [(45, 125), (245, 395)]
+    draw.rectangle(photo_rect, fill=(235, 240, 245), outline=(170, 185, 200), width=2)
+    draw.ellipse([(110, 175), (180, 245)], fill=(185, 200, 218))
+    draw.chord([(80, 260), (210, 390)], start=180, end=0, fill=(185, 200, 218))
+    draw.text((145, 365), format_arabic("صورة شخصية"), font=fonts["label"], fill=(120, 140, 160), anchor="mm")
+
+    # Document Access Code bottom-left
+    code_font = ImageFont.truetype(fonts["title"].path, 22)
+    draw.text((45, 415), "AC0262550", font=code_font, fill=dark_gray, anchor="la")
+
+    # Right side fields (stacked hierarchy)
+    field_label_font = ImageFont.truetype(fonts["value"].path, 17)
+    field_value_font = ImageFont.truetype(fonts["value"].path, 18)
+
+    words = identity["full_name"].split()
+    father = identity.get("father_name", "")
+    given = words[0] if words else ""
+    surname = words[-1] if len(words) > 1 else ""
+    middle = words[1:-1]
+    if father in middle:
+        f_idx = middle.index(father)
+        grandfather = " ".join(middle[f_idx + 1:])
+    else:
+        grandfather = " ".join(middle[1:]) if len(middle) > 1 else ""
+
+    mother_parts = identity["mother_name"].split()
+    mother_given = mother_parts[0] if len(mother_parts) > 0 else identity["mother_name"]
+    mother_father = mother_parts[1] if len(mother_parts) > 1 else ""
+
+    right_label_x = width - 45
+    colon_x = width - 150
+    value_x = colon_x - 15
+
+    items = [
+        ("الاسم", given),
+        ("الأب", father),
+        ("الجد", grandfather),
+        ("اللقب", surname),
+        ("الأم", mother_given),
+        ("الجد", mother_father),
+        ("الجنس", "ذكر"),
+        ("فصيلة الدم", "+O"),
+    ]
+
+    y_start = 185
+    line_h = 31
+    value_boxes = []
+
+    for index, (label_str, val_str) in enumerate(items):
+        curr_y = y_start + index * line_h
+        draw.text((right_label_x, curr_y), format_arabic(label_str), font=field_label_font, fill=label_gray, anchor="ra")
+        draw.text((colon_x, curr_y), ":", font=field_label_font, fill=label_gray, anchor="ra")
+        formatted_val = format_arabic(val_str)
+        val_bbox = draw.textbbox((value_x, curr_y), formatted_val, font=field_value_font, anchor="ra")
+        draw.text((value_x, curr_y), formatted_val, font=field_value_font, fill=dark_gray, anchor="ra")
+        value_boxes.append(val_bbox)
+
+    name_bboxes = value_boxes[0:4]
+    full_name_bbox = (
+        min(b[0] for b in name_bboxes),
+        min(b[1] for b in name_bboxes),
+        max(b[2] for b in name_bboxes),
+        max(b[3] for b in name_bboxes),
     )
 
-    fields: dict[str, DocumentField] = {}
-    base_x = width - 240
+    mother_bboxes = value_boxes[4:6]
+    mother_name_bbox = (
+        min(b[0] for b in mother_bboxes),
+        min(b[1] for b in mother_bboxes),
+        max(b[2] for b in mother_bboxes),
+        max(b[3] for b in mother_bboxes),
+    )
 
-    bbox = draw_arabic_field(draw, "الاسم الكامل", identity["full_name"], (base_x, 110), fonts)
-    fields["full_name"] = DocumentField("full_name", identity["full_name"], bbox)
+    # Vertical serial number on right edge
+    serial_img = Image.new("RGBA", (100, 30), (255, 255, 255, 0))
+    serial_draw = ImageDraw.Draw(serial_img)
+    serial_draw.text((0, 5), "164407", font=ImageFont.truetype(fonts["title"].path, 18), fill=(40, 45, 55))
+    rot_serial = serial_img.rotate(90, expand=True)
+    card.paste(rot_serial, (width - 32, height - 130), rot_serial)
 
-    bbox = draw_arabic_field(draw, "اسم الأم", identity["mother_name"], (base_x, 185), fonts)
-    fields["mother_name"] = DocumentField("mother_name", identity["mother_name"], bbox)
+    # Bottom metadata row: province, issue date, expiry date
+    bot_y = height - 52
+    field_small_label = ImageFont.truetype(fonts["label"].path, 14)
+    field_small_val = ImageFont.truetype(fonts["value"].path, 15)
 
-    bbox = draw_arabic_field(draw, "رقم الهوية الوطنية", identity["national_id"], (base_x, 260), fonts)
-    fields["national_id"] = DocumentField("national_id", identity["national_id"], bbox)
+    # Province
+    p_label = format_arabic("المحافظة : ")
+    p_x = width - 50
+    draw.text((p_x, bot_y), p_label, font=field_small_label, fill=label_gray, anchor="ra")
+    p_lbl_bbox = draw.textbbox((p_x, bot_y), p_label, font=field_small_label, anchor="ra")
+    p_val_x = p_lbl_bbox[0] - 6
+    formatted_prov = format_arabic(identity["province"])
+    province_bbox = draw.textbbox((p_val_x, bot_y), formatted_prov, font=field_small_val, anchor="ra")
+    draw.text((p_val_x, bot_y), formatted_prov, font=field_small_val, fill=dark_gray, anchor="ra")
 
-    # Bottom metadata row
-    col3_x = base_x
-    col2_x = base_x - 190
-    col1_x = base_x - 380
+    # Issue Date
+    iss_label = format_arabic("تاريخ الإصدار : ")
+    iss_x = width - 230
+    draw.text((iss_x, bot_y), iss_label, font=field_small_label, fill=label_gray, anchor="ra")
+    iss_lbl_bbox = draw.textbbox((iss_x, bot_y), iss_label, font=field_small_label, anchor="ra")
+    iss_val_x = iss_lbl_bbox[0] - 6
+    issue_date_bbox = draw.textbbox((iss_val_x, bot_y), identity["issue_date"], font=field_small_val, anchor="ra")
+    draw.text((iss_val_x, bot_y), identity["issue_date"], font=field_small_val, fill=dark_gray, anchor="ra")
 
-    bbox = draw_arabic_field(draw, "المحافظة", identity["province"], (col3_x, 355), fonts)
-    fields["province"] = DocumentField("province", identity["province"], bbox)
+    # Expiry Date
+    exp_label = format_arabic("تاريخ النفاذ : ")
+    exp_x = width - 440
+    draw.text((exp_x, bot_y), exp_label, font=field_small_label, fill=label_gray, anchor="ra")
+    exp_lbl_bbox = draw.textbbox((exp_x, bot_y), exp_label, font=field_small_label, anchor="ra")
+    exp_val_x = exp_lbl_bbox[0] - 6
+    expiry_date_bbox = draw.textbbox((exp_val_x, bot_y), identity["expiry_date"], font=field_small_val, anchor="ra")
+    draw.text((exp_val_x, bot_y), identity["expiry_date"], font=field_small_val, fill=dark_gray, anchor="ra")
 
-    bbox = draw_arabic_field(draw, "تاريخ الإصدار", identity["issue_date"], (col2_x, 355), fonts)
-    fields["issue_date"] = DocumentField("issue_date", identity["issue_date"], bbox)
-
-    bbox = draw_arabic_field(draw, "تاريخ النفاذ", identity["expiry_date"], (col1_x, 355), fonts)
-    fields["expiry_date"] = DocumentField("expiry_date", identity["expiry_date"], bbox)
+    fields = {
+        "national_id": DocumentField("national_id", identity["national_id"], id_bbox),
+        "full_name": DocumentField("full_name", identity["full_name"], full_name_bbox),
+        "mother_name": DocumentField("mother_name", identity["mother_name"], mother_name_bbox),
+        "province": DocumentField("province", identity["province"], province_bbox),
+        "issue_date": DocumentField("issue_date", identity["issue_date"], issue_date_bbox),
+        "expiry_date": DocumentField("expiry_date", identity["expiry_date"], expiry_date_bbox),
+    }
 
     return card, fields
 
@@ -364,7 +528,7 @@ def render_tax_card(
 def inject_specular_glare(
     image: Image.Image,
     target_bbox: tuple[int, int, int, int],
-    intensity: float = 0.85,
+    intensity: float = 0.95,
 ) -> Image.Image:
     """Inject realistic specular glare hotspot placed directly over target bounding box."""
     # yagni: radial 2D Gaussian glare; 3D ray-tracing shader if physical reflection calibration demands it

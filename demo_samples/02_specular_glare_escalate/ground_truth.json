@@ -32,10 +32,10 @@
       "target_document": "national_id",
       "target_field": "full_name",
       "bbox": [
-        372,
-        137,
-        610,
-        159
+        621,
+        192,
+        685,
+        299
       ]
     }
   ]
