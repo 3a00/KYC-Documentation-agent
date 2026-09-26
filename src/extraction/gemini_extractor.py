@@ -11,10 +11,12 @@ from enum import Enum
 import json
 import logging
 import math
+import socket
 import time
 from typing import Any
 
 import cv2
+from dotenv import load_dotenv
 from google import genai
 from google.genai import errors, types
 import numpy as np
@@ -378,6 +380,23 @@ def build_system_prompt(doc_type: DocumentType) -> str:
     raise ValueError(f"Unknown document type: {doc_type}")
 
 
+def ensure_ipv4_socket_resolution() -> None:
+    """Enforce IPv4 (AF_INET) socket DNS resolution.
+
+    Prevents Linux Errno 101 Network is unreachable errors on dual-stack hosts lacking an active IPv6 default gateway.
+    """
+    if getattr(socket, "_gemini_ipv4_enforced", False):
+        return
+
+    orig_getaddrinfo = socket.getaddrinfo
+
+    def _ipv4_getaddrinfo(host: Any, port: Any, family: int = 0, socktype: int = 0, proto: int = 0, flags: int = 0) -> Any:
+        return orig_getaddrinfo(host, port, socket.AF_INET, socktype, proto, flags)
+
+    socket.getaddrinfo = _ipv4_getaddrinfo
+    socket._gemini_ipv4_enforced = True  # type: ignore[attr-defined]
+
+
 class GeminiMultimodalExtractor:
     """Isolated document-parallel multimodal extraction pipeline using Gemini SDK."""
 
@@ -388,8 +407,10 @@ class GeminiMultimodalExtractor:
         request_timeout_seconds: float = 25.0,
         api_key: str | None = None,
     ) -> None:
+        load_dotenv()
+        ensure_ipv4_socket_resolution()
         self.request_timeout_seconds = request_timeout_seconds
-        http_options = types.HttpOptions(timeout=request_timeout_seconds)
+        http_options = types.HttpOptions(timeout=int(request_timeout_seconds * 1000))
         if client is not None:
             self.client = client
         elif api_key:
@@ -422,10 +443,8 @@ class GeminiMultimodalExtractor:
             response_mime_type="application/json",
             response_schema=target_schema,
             temperature=0.0,
-            response_logprobs=True,
-            logprobs=5,
             system_instruction=system_prompt,
-            http_options=types.HttpOptions(timeout=self.request_timeout_seconds),
+            http_options=types.HttpOptions(timeout=int(self.request_timeout_seconds * 1000)),
         )
 
         max_attempts = 4
@@ -458,7 +477,9 @@ class GeminiMultimodalExtractor:
                     ):
                         is_transient = True
                 elif isinstance(exc, (ConnectionError, TimeoutError, json.JSONDecodeError)) or any(
-                    term in type(exc).__name__ for term in ("ConnectError", "TimeoutError", "NetworkError")
+                    term in type(exc).__name__.lower() for term in ("connect", "timeout", "network", "http")
+                ) or any(
+                    term in err_str.lower() for term in ("timed out", "timeout", "connect", "unreachable")
                 ):
                     is_transient = True
 
@@ -507,7 +528,7 @@ class GeminiMultimodalExtractor:
             response_schema=RawRetryPayload,
             temperature=0.0,
             system_instruction="You are a specialized optical re-inspection tool for degraded document fields.",
-            http_options=types.HttpOptions(timeout=self.request_timeout_seconds),
+            http_options=types.HttpOptions(timeout=int(self.request_timeout_seconds * 1000)),
         )
 
         max_attempts = 3
@@ -531,7 +552,9 @@ class GeminiMultimodalExtractor:
                         or any(term in err_str for term in ("RESOURCE_EXHAUSTED", "UNAVAILABLE", "high demand"))
                     )
                 ) or isinstance(exc, (ConnectionError, TimeoutError, json.JSONDecodeError)) or any(
-                    term in type(exc).__name__ for term in ("ConnectError", "TimeoutError", "NetworkError")
+                    term in type(exc).__name__.lower() for term in ("connect", "timeout", "network", "http")
+                ) or any(
+                    term in err_str.lower() for term in ("timed out", "timeout", "connect", "unreachable")
                 )
 
                 if is_transient and attempt < max_attempts:

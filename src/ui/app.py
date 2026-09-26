@@ -18,7 +18,10 @@ from src.benchmark.benchmark_suite import (
     generate_synthetic_benchmark_split,
 )
 from src.data.synthetic_generator import FONT_BOLD
-from src.extraction.gemini_extractor import GeminiMultimodalExtractor
+from src.extraction.gemini_extractor import (
+    GeminiMultimodalExtractor,
+    ensure_ipv4_socket_resolution,
+)
 from src.triage.triage_engine import (
     FieldAnomaly,
     OnboardingDossier,
@@ -195,6 +198,7 @@ def render_outcome_banner(dossier: OnboardingDossier) -> None:
 def main() -> None:
     """Streamlit application main entrypoint."""
     load_dotenv()
+    ensure_ipv4_socket_resolution()
     st.set_page_config(
         page_title="ZainCash KYC Document Agent",
         layout="wide",
