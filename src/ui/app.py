@@ -26,6 +26,7 @@ from src.triage.triage_engine import (
     FieldAnomaly,
     OnboardingDossier,
     TriageLifecycle,
+    format_pair_label_en,
     verify_onboarding_package,
 )
 
@@ -411,13 +412,12 @@ def main() -> None:
                     "surname": "Surname / Clan",
                 }
                 for mismatch in dossier.name_mismatches:
-                    safe_doc_a = html.escape(mismatch.doc_a_name.replace("_", " ").title())
-                    safe_doc_b = html.escape(mismatch.doc_b_name.replace("_", " ").title())
+                    pair_label = html.escape(format_pair_label_en(mismatch.pair_key, mismatch.doc_a_name, mismatch.doc_b_name))
                     safe_name_a = html.escape(mismatch.raw_name_a)
                     safe_name_b = html.escape(mismatch.raw_name_b)
 
                     with st.expander(
-                        f"Comparison: {safe_doc_a} vs {safe_doc_b} (Similarity: {mismatch.similarity_score:.1%})",
+                        f"Comparison: {pair_label} (Similarity: {mismatch.similarity_score:.1%})",
                         expanded=True,
                     ):
                         st.markdown(f"**Name in First Document:** `{safe_name_a}`")
@@ -425,7 +425,7 @@ def main() -> None:
                         st.markdown(f"**Triage Classification:** `{mismatch.triage_band.value}`")
 
                         if mismatch.token_details:
-                            st.markdown("##### Detailed Patronymic Slot Breakdown:")
+                            st.markdown("**Detailed Patronymic Slot Breakdown:**")
                             slot_rows = []
                             for slot in mismatch.token_details:
                                 if slot.similarity >= 0.88:

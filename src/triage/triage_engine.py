@@ -74,6 +74,36 @@ DOC_TYPES_AR: dict[str, str] = {
     "tax": "الهوية الضريبية",
 }
 
+DOC_TYPES_EN: dict[str, str] = {
+    "national_id": "National ID",
+    "business_license": "Business License",
+    "tax_card": "Tax Card",
+    "package": "Full Document Package",
+    "national": "National ID",
+    "business": "Business License",
+    "tax": "Tax Card",
+}
+
+AR_TO_EN_DOC_TYPES: dict[str, str] = {
+    "البطاقة الوطنية الموحدة": "National ID",
+    "إجازة ممارسة المهنة / السجل التجاري": "Business License",
+    "إجازة ممارسة المهنة": "Business License",
+    "الهوية الضريبية": "Tax Card",
+    "حزمة الوثائق الكاملة": "Full Document Package",
+}
+
+
+def format_pair_label_en(pair_key: str, doc_a_name: str, doc_b_name: str) -> str:
+    """Format a pairwise cross-document comparison label in English."""
+    doc_a_en = AR_TO_EN_DOC_TYPES.get(doc_a_name, doc_a_name.replace("_", " ").title())
+    doc_b_en = AR_TO_EN_DOC_TYPES.get(doc_b_name, doc_b_name.replace("_", " ").title())
+    if "_vs_" in pair_key:
+        k_a, k_b = pair_key.split("_vs_")
+        doc_a_en = DOC_TYPES_EN.get(k_a, doc_a_en)
+        doc_b_en = DOC_TYPES_EN.get(k_b, doc_b_en)
+    return f"{doc_a_en} vs {doc_b_en}"
+
+
 TIER1_CONFIDENCE_THRESHOLD = 0.85
 TIER2_CONFIDENCE_THRESHOLD = 0.70
 
@@ -352,7 +382,7 @@ class OnboardingDossier:
             lines.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
             for mismatch in self.name_mismatches:
                 notes_str = " - ".join(mismatch.audit_notes) if mismatch.audit_notes else "Full Match"
-                pair_label = f"{mismatch.doc_a_name.replace('_', ' ').title()} vs {mismatch.doc_b_name.replace('_', ' ').title()}"
+                pair_label = format_pair_label_en(mismatch.pair_key, mismatch.doc_a_name, mismatch.doc_b_name)
                 lines.append(
                     f"| {pair_label} | `{mismatch.raw_name_a}` | "
                     f"`{mismatch.raw_name_b}` | `{mismatch.similarity_score:.1%}` | `{mismatch.triage_band.value}` | {notes_str} |"
@@ -372,7 +402,7 @@ class OnboardingDossier:
                     "surname": "Surname / Clan",
                 }
                 for mismatch in self.name_mismatches:
-                    pair_label = f"{mismatch.doc_a_name.replace('_', ' ').title()} vs {mismatch.doc_b_name.replace('_', ' ').title()}"
+                    pair_label = format_pair_label_en(mismatch.pair_key, mismatch.doc_a_name, mismatch.doc_b_name)
                     sorted_slots = sorted(mismatch.token_details, key=lambda slot: slot.similarity)
                     is_escalated_or_mismatch = mismatch.triage_band in (
                         MatchBand.HUMAN_ESCALATION,
