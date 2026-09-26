@@ -10,14 +10,19 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, features
 import cv2
 import numpy as np
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-FONT_REGULAR = "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf"
-FONT_BOLD = "/usr/share/fonts/truetype/noto/NotoSansArabic-Bold.ttf"
+DEJAVU_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+DEJAVU_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+NOTO_REGULAR = "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf"
+NOTO_BOLD = "/usr/share/fonts/truetype/noto/NotoSansArabic-Bold.ttf"
+
+FONT_REGULAR = DEJAVU_REGULAR if Path(DEJAVU_REGULAR).exists() else NOTO_REGULAR
+FONT_BOLD = DEJAVU_BOLD if Path(DEJAVU_BOLD).exists() else NOTO_BOLD
 
 # Fictional combinatorial Iraqi identity data (Zero real customer data)
 GIVEN_NAMES = [
@@ -105,24 +110,29 @@ class SyntheticDocumentResult:
 
 def format_arabic(text: str) -> str:
     """Reshape and reorder Arabic text for correct RTL visual rendering."""
+    # When Raqm (FriBidi + HarfBuzz) is active in Pillow, it shapes and orders Arabic natively.
+    # Pre-reshaping with arabic_reshaper and get_display reverses text a second time.
+    if features.check("raqm"):
+        return text
     reshaped_text = arabic_reshaper.reshape(text)
     return get_display(reshaped_text)
 
 
 def get_fonts(base_size: int = 18) -> dict[str, ImageFont.FreeTypeFont]:
-    """Load authentic Noto typography at varied weights and sizes.
+    """Load authentic typography at varied weights and sizes.
 
-    Fails loudly if required Arabic fonts are missing from the system.
+    Fails loudly if required fonts are missing from the system.
     """
     for font_path in (FONT_REGULAR, FONT_BOLD):
         if not Path(font_path).exists():
             raise RuntimeError(
                 f"Required authentic Arabic font not found at '{font_path}'. "
-                "Install fonts-noto-core on Debian/Ubuntu or ensure Noto fonts are in /usr/share/fonts."
+                "Install fonts-dejavu-core or fonts-noto-core on Debian/Ubuntu or ensure fonts exist."
             )
     return {
         "title": ImageFont.truetype(FONT_BOLD, int(base_size * 1.3)),
         "header": ImageFont.truetype(FONT_BOLD, base_size),
+        "subtitle": ImageFont.truetype(FONT_BOLD, int(base_size * 0.95)),
         "label": ImageFont.truetype(FONT_REGULAR, int(base_size * 0.85)),
         "value": ImageFont.truetype(FONT_BOLD, base_size),
         "value_small": ImageFont.truetype(FONT_REGULAR, int(base_size * 0.9)),
@@ -283,7 +293,8 @@ def render_business_license(
     title_text = format_arabic("جمهورية العراق - وزارة التجارة")
     draw.text((width // 2, 80), title_text, font=fonts["header"], fill=(60, 50, 30), anchor="mm")
     sub_title = format_arabic("دائرة تسجيل الشركات - إجازة ممارسة مهنة وسجل تجاري")
-    draw.text((width // 2, 120), sub_title, font=fonts["title"], fill=(120, 30, 30), anchor="mm")
+    subtitle_font = fonts.get("subtitle", fonts["header"])
+    draw.text((width // 2, 120), sub_title, font=subtitle_font, fill=(120, 30, 30), anchor="mm")
 
     fields: dict[str, DocumentField] = {}
     center_x = width - 80
