@@ -16,7 +16,7 @@ from typing import Any
 
 import cv2
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 import numpy as np
 from PIL import Image
 from pydantic import BaseModel, Field
@@ -428,20 +428,65 @@ class GeminiMultimodalExtractor:
             http_options=types.HttpOptions(timeout=self.request_timeout_seconds),
         )
 
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=[
-                pil_image,
-                f"Extract all fields from this front-face {doc_type.value} photograph into the structured schema.",
-            ],
-            config=config,
-        )
+        max_attempts = 4
+        last_exception: Exception | None = None
 
-        candidate = response.candidates[0] if response.candidates else None
-        text_content = response.text or "{}"
-        parsed_json = json.loads(text_content)
-        raw_response = target_schema.model_validate(parsed_json)
-        return raw_response, candidate
+        for attempt in range(1, max_attempts + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[
+                        pil_image,
+                        f"Extract all fields from this front-face {doc_type.value} photograph into the structured schema.",
+                    ],
+                    config=config,
+                )
+
+                candidate = response.candidates[0] if response.candidates else None
+                text_content = response.text or "{}"
+                parsed_json = json.loads(text_content)
+                raw_response = target_schema.model_validate(parsed_json)
+                return raw_response, candidate
+            except Exception as exc:
+                last_exception = exc
+                err_str = str(exc)
+                is_transient = False
+                if isinstance(exc, errors.APIError):
+                    code = getattr(exc, "code", None)
+                    if code in (429, 500, 502, 503, 504) or any(
+                        term in err_str for term in ("RESOURCE_EXHAUSTED", "UNAVAILABLE", "high demand", "overloaded")
+                    ):
+                        is_transient = True
+                elif isinstance(exc, (ConnectionError, TimeoutError, json.JSONDecodeError)) or any(
+                    term in type(exc).__name__ for term in ("ConnectError", "TimeoutError", "NetworkError")
+                ):
+                    is_transient = True
+
+                if is_transient and attempt < max_attempts:
+                    backoff = 1.5 * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Gemini API transient failure on %s (attempt %d/%d): %s. Retrying in %.1fs...",
+                        doc_type.value,
+                        attempt,
+                        max_attempts,
+                        exc,
+                        backoff,
+                    )
+                    time.sleep(backoff)
+                    continue
+
+                logger.error(
+                    "Gemini API call failed permanently for %s on attempt %d/%d: %s",
+                    doc_type.value,
+                    attempt,
+                    max_attempts,
+                    exc,
+                )
+                raise exc
+
+        if last_exception is not None:
+            raise last_exception
+        raise RuntimeError(f"Extraction failed for {doc_type.value}")
 
     def _retry_single_field_clahe(
         self,
@@ -465,12 +510,47 @@ class GeminiMultimodalExtractor:
             http_options=types.HttpOptions(timeout=self.request_timeout_seconds),
         )
 
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=[pil_crop, prompt],
-            config=config,
-        )
-        return RawRetryPayload.model_validate(json.loads(response.text or "{}"))
+        max_attempts = 3
+        last_exception: Exception | None = None
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[pil_crop, prompt],
+                    config=config,
+                )
+                return RawRetryPayload.model_validate(json.loads(response.text or "{}"))
+            except Exception as exc:
+                last_exception = exc
+                err_str = str(exc)
+                is_transient = (
+                    isinstance(exc, errors.APIError)
+                    and (
+                        getattr(exc, "code", None) in (429, 500, 502, 503, 504)
+                        or any(term in err_str for term in ("RESOURCE_EXHAUSTED", "UNAVAILABLE", "high demand"))
+                    )
+                ) or isinstance(exc, (ConnectionError, TimeoutError, json.JSONDecodeError)) or any(
+                    term in type(exc).__name__ for term in ("ConnectError", "TimeoutError", "NetworkError")
+                )
+
+                if is_transient and attempt < max_attempts:
+                    backoff = 1.5 * (2 ** (attempt - 1))
+                    logger.warning(
+                        "CLAHE retry transient failure for %s (attempt %d/%d): %s. Retrying in %.1fs...",
+                        field_name,
+                        attempt,
+                        max_attempts,
+                        exc,
+                        backoff,
+                    )
+                    time.sleep(backoff)
+                    continue
+                raise exc
+
+        if last_exception is not None:
+            raise last_exception
+        raise RuntimeError(f"CLAHE retry failed for {field_name}")
 
     def _process_field(
         self,
@@ -734,9 +814,11 @@ class GeminiMultimodalExtractor:
             future_nid = executor.submit(
                 self.extract_document, national_id_image, DocumentType.NATIONAL_ID, enable_retry
             )
+            time.sleep(0.25)
             future_biz = executor.submit(
                 self.extract_document, business_license_image, DocumentType.BUSINESS_LICENSE, enable_retry
             )
+            time.sleep(0.25)
             future_tax = executor.submit(
                 self.extract_document, tax_card_image, DocumentType.TAX_CARD, enable_retry
             )

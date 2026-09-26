@@ -15,7 +15,6 @@ import streamlit as st
 
 from src.benchmark.benchmark_suite import (
     BenchmarkScenario,
-    SimulatedBenchmarkExtractor,
     generate_synthetic_benchmark_split,
 )
 from src.data.synthetic_generator import FONT_BOLD
@@ -251,11 +250,11 @@ def main() -> None:
         has_active_key = bool(api_key)
 
         if custom_key.strip():
-            st.success("Manual API Key Override Active")
+            st.success("Manual API Key Active (Live API Mode)")
         elif has_env_key:
-            st.success("Key Loaded Securely from Environment")
+            st.success("Environment API Key Active (Live API Mode)")
         else:
-            st.info("No API Key: Offline Simulation Mode Enabled")
+            st.error("No API Key detected. Live Gemini API is strictly required.")
 
         st.divider()
         st.subheader("طريقة إدخال الوثائق (Input Mode)")
@@ -298,7 +297,6 @@ def main() -> None:
         st.divider()
         st.subheader("خيارات العرض التشخيصي")
         show_bboxes = st.checkbox("إظهار مربعات الإحاطة التشخيصية (Overlay Bounding Boxes)", value=True)
-        force_simulation = st.checkbox("تشغيل وضع المحاكاة السريع (Force Offline Simulator)", value=not has_active_key)
 
         run_btn = st.button("تشغيل الفحص والتحقق (Run Verification)", type="primary", use_container_width=True)
 
@@ -336,16 +334,16 @@ def main() -> None:
 
     # 3. Pipeline Execution & State Management
     if run_btn:
+        if not has_active_key:
+            st.error("مفتاح Gemini API مطلوب لتشغيل المنظومة. يرجى إدخال مفتاح API في الشريط الجانبي أو في ملف .env للمتابعة.")
+            return
+
         if img_nid is None or img_biz is None or img_tax is None:
             st.error("يرجى تحميل جميع الوثائق الثلاث أو اختيار حالة تجريبية جاهزة للمتابعة.")
             return
 
-        with st.spinner("جاري استخراج البيانات وفحص التوافقية ومطابقة الهوية عبر الوثائق..."):
-            extractor = None
-            if force_simulation or not has_active_key:
-                extractor = SimulatedBenchmarkExtractor()
-            else:
-                extractor = GeminiMultimodalExtractor(api_key=api_key)
+        with st.spinner("جاري استخراج البيانات وفحص التوافقية ومطابقة الهوية عبر Gemini API..."):
+            extractor = GeminiMultimodalExtractor(api_key=api_key)
 
             dossier = verify_onboarding_package(
                 national_id_image=img_nid,
@@ -398,6 +396,21 @@ def main() -> None:
         st.info("تم تغيير إدخال الوثائق. اضغط على زر 'تشغيل الفحص والتحقق' لفحص الحزمة الجديدة.")
 
     if dossier is not None and not is_input_changed:
+        if dossier.extraction_package is not None:
+            pkg = dossier.extraction_package
+            api_errors = []
+            for doc_title, doc_res in [
+                ("البطاقة الوطنية الموحدة", pkg.national_id),
+                ("إجازة ممارسة المهنة", pkg.business_license),
+                ("الهوية الضريبية", pkg.tax_card),
+            ]:
+                if doc_res.audit.retry_error and "WorkerException" in doc_res.audit.retry_error:
+                    api_errors.append(f"{doc_title}: {doc_res.audit.retry_error}")
+            if api_errors:
+                st.error("تنبيه: تعذر إكمال استخراج بعض الوثائق عبر Gemini API بسبب خطأ في الخدمة:")
+                for err in api_errors:
+                    st.caption(err)
+
         st.divider()
         render_outcome_banner(dossier)
 
