@@ -386,11 +386,14 @@ class GeminiMultimodalExtractor:
         client: genai.Client | None = None,
         model_name: str = "gemini-3.8-flash",
         request_timeout_seconds: float = 25.0,
+        api_key: str | None = None,
     ) -> None:
         self.request_timeout_seconds = request_timeout_seconds
         http_options = types.HttpOptions(timeout=request_timeout_seconds)
         if client is not None:
             self.client = client
+        elif api_key:
+            self.client = genai.Client(api_key=api_key, http_options=http_options)
         else:
             try:
                 self.client = genai.Client(http_options=http_options)
