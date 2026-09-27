@@ -26,3 +26,5 @@ data/synthetic/
 *.swp
 
 llm reviews only
+slides-test
+generate_pitch_deck.py

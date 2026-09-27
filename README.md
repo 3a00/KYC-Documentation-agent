@@ -189,6 +189,31 @@ Execute the full test suite (112 test cases covering extraction, normalization, 
 pytest
 ```
 
+## Tools, Models & AI Disclosure
+
+In accordance with transparent disclosure standards:
+
+### 1. Foundation Models
+* **Google Gemini 3.5 Flash-Lite** (`gemini-3.5-flash-lite` via `google-genai` SDK): Multimodal optical extraction from document photographs, structured JSON schema emission, character certainty logprob parsing, and single-field CLAHE contrast re-inspection.
+
+### 2. AI Coding Assistants & Agentic Workflows
+* **Google Antigravity / DeepMind Coding Assistant** (Gemini 3.8 Flash High): Autonomous pair programming, modular codebase architecture, test-driven development (112 test cases), and documentation generation.
+
+### 3. Core Software Libraries & Tools
+* **`google-genai`**: Official Google GenAI SDK for low-latency multimodal inference.
+* **`pydantic` (v2)**: Strict structural validation, type enforcement, and zero-hallucination field invariants (`ExtractedField`).
+* **`opencv-python-headless`**: Computer vision edge detection (Laplacian variance focus assessment), HSV color-space specular glare ratio quantification, and CLAHE contrast enhancement.
+* **`pillow` (PIL)**: Bounding box geometric mapping, pixel coordinate projection, and diagnostic image annotation.
+* **`streamlit`**: Interactive operational verification dashboard, multi-tab audit dossier, and side-by-side document previews.
+* **`rapidfuzz` & Pure-Python Jaro-Winkler**: Debiased token-level similarity calculation and patronymic chain scoring.
+* **`arabic-reshaper` & `python-bidi`**: Bidirectional Arabic script shaping for synthetic document image rendering.
+* **`pytest`**: Automated test suite ensuring pipeline integrity across 112 unit and integration tests.
+
+### 4. Data Sources & Synthetic Data Generation
+* **100% Synthetic Fictional Data**: Zero real citizen or merchant identity documents were collected or utilized.
+* **Synthetic Defect Pipeline** (`src/data/synthetic_generator.py`): Programmatic generation of document templates (Unified National Card, Business License, Tax Card) with synthetic patronymic names and IDs.
+* **Defect Augmentation**: Programmatic injection of real-world capture artifacts (specular flash glare, Gaussian motion blur, perspective camera tilt, and planted identity mismatch splits) used to benchmark extraction accuracy and Expected Calibration Error (ECE).
+
 ---
 
 ## Technical Policies & Safety Guarantees
